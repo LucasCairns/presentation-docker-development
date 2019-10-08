@@ -1,0 +1,293 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>reveal.js</title>
+
+		<link rel="stylesheet" href="css/reset.css">
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="lib/css/monokai.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement('link');
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window
+				.location
+				.search
+				.match(/print-pdf/gi)
+					? 'css/print/pdf.css'
+					: 'css/print/paper.css';
+			document
+				.getElementsByTagName('head')[0]
+				.appendChild(link);
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+					<h2>Using Docker for development</h2>
+					<p>Lucas Cairns - HMPPS Digital</p>
+				</section>
+				<section>
+					<section>
+						<h2>Docker</h2>
+					</section>
+					<section>
+						<h2>Why use it?</h2>
+						<p class="fragment">Package applications with dependencies</p>
+						<p class="fragment">Your only requirement is Docker</p>
+						<p class="fragment">Sandboxed from host machine</p>
+						<p class="fragment">Relatively small size</p>
+					</section>
+					<section>
+						<h3>In practice</h3>
+						<pre>
+<code class="hljs Dockerfile has-highlights" data-line-numbers>FROM node:current-alpine
+
+WORKDIR /home/node/app
+
+COPY package*.json ./
+RUN npm install
+COPY . .
+
+EXPOSE 8080
+CMD ["npm", "start"]</code>
+						</pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h2>Docker Compose</h2>
+					</section>
+					<section>
+						<h2>Why use it?</h2>
+						<p class="fragment">Relatively easy to run multiple connected services</p>
+						<p class="fragment">Representitive of the architecture for your project</p>
+						<p class="fragment">Integration testing as part of your CI pipeline</p>
+					</section>
+					<section>
+						<h3>In practice</h3>
+						<pre>
+<code class="hljs YAML has-highlights" data-line-numbers>version: "3"
+
+services:
+  frontend:
+    image: lucascairns/frontend-service
+    environment:
+      ...
+    ports:
+      - 8080:80
+    depends_on:
+      - backend
+  backend:
+    image: lucascairns/backend-service
+    environment:
+      ...
+    ports:
+      - 8081:80
+    depends_on:
+      - database
+  database:
+    image: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: dev
+      ...
+    ports:
+      - 27017:27017
+    volumes:
+      - ./db/data:/data/db</code>
+	  					</pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h2>Remote containers</h2>
+					</section>
+					<section>
+						<h2>Why use it?</h2>
+						<p class="fragment">Dependencies provided by the container</p>
+						<p class="fragment">Sandboxed from host machine</p>
+						<p class="fragment">Develop using the same environment you use to build</p>
+						<p class="fragment">Cross platform, works on any machine with Docker</p>
+						<p class="fragment">Initial IDE configuration can be provided</p>
+					</section>
+					<section>
+						<p>Ultimately...</p>
+						<h4 class="fragment">It's quicker and easier to get started</h4>
+					</section>
+					<section>
+						<h3>In practice</h3>
+						<pre>
+<code class="hljs JSON has-highlights" data-line-numbers>{
+  "name": "Go",
+  "dockerFile": "Dockerfile",
+  "runArgs": ["--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined"],  
+  "appPort": [8080],
+  "extensions": ["ms-vscode.go"],
+  "settings": {
+    "go.inferGopath": true
+  }
+}</code>
+						</pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h2>Using compose with remote containers</h2>
+					</section>
+					<section>
+						<h2>Why use it?</h2>
+						<p class="fragment">Develop against other microservices</p>
+						<p class="fragment">Provide dependencies such as databases, queues, etc...</p>
+					</section>
+					<section>
+						<h3>In practice - VSCode configuration</h3>
+						<pre>
+<code class="hljs JSON has-highlights" data-line-numbers>{
+  "name": "Go",
+  "dockerComposeFile": "./docker-compose.yml",
+  "extensions": ["ms-vscode.go"],
+  "settings": {
+    "go.gopath": "/go"
+  },
+  "service": "web_server",
+  "workspaceFolder": "/go/src/github.com/LucasCairns/go-web",
+  "shutdownAction": "stopCompose"
+}</code>
+						</pre>
+					</section>
+					<section>
+						<h3>In practice - Docker Compose configuration</h3>
+						<pre>
+<code class="hljs YAML has-highlights" data-line-numbers>version: "3"
+
+services:
+  web_server:
+    build:
+      context: .
+    volumes:
+      - ..:/go/src/github.com/LucasCairns/go-web
+      - ~/.gitconfig:/root/.gitconfig
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    ports:
+      - 8080:8080
+    command: "sleep infinity"
+  pg_db:
+    image: postgres
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASS: dev
+      POSTGRES_DB: test_db
+    ports:
+      - 5432:5432
+    volumes:
+      - ../data/postgres:/var/lib/postgresql/data</code>
+						</pre>
+					</section>
+				</section>
+				<section>
+					<section>
+						<h2>Localstack</h2>
+						<a href="https://localstack.cloud/">https://localstack.cloud/</a>
+					</section>
+					<section>
+						<h2>Why use it?</h2>
+						<p class="fragment">Develop against ~25 AWS services locally</p>
+						<p class="fragment">Compatible with the AWS CLI</p>
+						<p class="fragment">Learning and development, no need for a subscription</p>
+						<p class="fragment">Use as part of your CI pipeline for integration testing</p>
+					</section>
+					<section>
+						<h3>In practice - Localstack</h3>
+						<pre>
+<code class="hljs YAML has-highlights" data-line-numbers>localstack:
+  image: localstack/localstack:latest
+  ports:
+    - 9000:8080
+    - 4572:4572
+    - 4576:4576
+    - 4575:4575
+    - 4571:4571
+    - 4578:4578
+  environment:
+    HOSTNAME_EXTERNAL: localstack
+    DEFAULT_REGION: eu-west-2
+    SERVICES: sqs,s3,sns,es</code>
+						</pre>
+					</section>
+					<section>
+						<h3>In practice - AWS CLI</h3>
+						<pre>
+<code class="hljs YAML has-highlights" data-line-numbers>aws_cli:
+  image: xueshanf/awscli
+  command:
+  - /bin/sh
+  - -c
+  - |
+    sleep 30
+    aws --version
+    aws --endpoint-url=http://localstack:4572 s3 mb s3://untrusted-bucket
+    aws --endpoint-url=http://localstack:4572 s3 mb s3://trusted-bucket
+    aws --endpoint-url=http://localstack:4576 sqs create-queue --queue-name audit-queue
+    aws --endpoint-url=http://localstack:4575 sns subscribe --topic-arn arn:aws:sns:eu-west-2:123456789012:audit-topic --attributes RawMessageDelivery=true --protocol sqs --notification-endpoint arn:aws:sns:eu-west-2:123456789012:audit-queue
+    aws --endpoint-url=http://localstack:4575 sns set-subscription-attributes --subscription-arn $$(aws --endpoint-url=http://localstack:4575 sns list-subscriptions-by-topic --topic-arn arn:aws:sns:eu-west-2:123456789012:audit-topic --output json | jq --raw-output '.Subscriptions[0].SubscriptionArn') --attribute-name RawMessageDelivery --attribute-value true
+    aws --endpoint-url=http://localstack:4575 sns list-subscriptions
+  environment:
+    AWS_ACCESS_KEY_ID: UNSET
+    AWS_SECRET_ACCESS_KEY: UNSET
+    AWS_DEFAULT_REGION: 'eu-west-2'
+  depends_on:
+  - localstack</code>
+						</pre>
+					</section>
+				</section>
+				<section>
+					<h2>TDLR</h2>
+					<p class="fragment">Use Docker to make your life easier</p>
+					<p class="fragment">Use Docker-Compose for integrating services</p>
+					<p class="fragment">Remote container development makes getting set up a breeze</p>
+					<p class="fragment">Try out Localstack, it's awesome...</p>
+					<p class="fragment">...just don't use it in production</p>
+				</section>
+				<section>
+					<h1>Questions?</h1>
+				</section>
+			</div>
+		</div>
+
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// More info about config & dependencies:
+			// - https://github.com/hakimel/reveal.js#configuration
+			// - https://github.com/hakimel/reveal.js#dependencies
+			Reveal.initialize({
+				dependencies: [
+					{
+						src: 'plugin/markdown/marked.js'
+					}, {
+						src: 'plugin/markdown/markdown.js'
+					}, {
+						src: 'plugin/notes/notes.js',
+						async: true
+					}, {
+						src: 'plugin/highlight/highlight.js',
+						async: true
+					}
+				]
+			});
+		</script>
+	</body>
+</html>
